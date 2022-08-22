@@ -13,7 +13,8 @@ This section describes, how the configuration for `CloudProfile` looks like for 
 ### `CloudProfileConfig`
 
 The cloud profile configuration contains information about the real machine image IDs in the Alicloud environment (AMIs).
-You have to map every version that you specify in `.spec.machineImages[].versions` here such that the Alicloud extension knows the AMI for every version you want to offer.
+You have to map every version that you specify in `.spec.machineImages[].versions` here such that the Alicloud extension knows the machine image ID for every version you want to offer.
+For each machine image ID an `architecture` field can be specified which specifies the CPU architecture of the machine on which given machine image can be used.
 
 An example `CloudProfileConfig` for the Alicloud extension looks as follows:
 
@@ -27,6 +28,7 @@ machineImages:
     regions:
     - name: eu-central-1
       id: coreos_2023_4_0_64_30G_alibase_20190319.vhd
+      # architecture: amd64 # optional
 ```
 
 ### Example `CloudProfile` manifest
@@ -74,6 +76,7 @@ spec:
         regions:
         - name: eu-central-1
           id: coreos_2023_4_0_64_30G_alibase_20190319.vhd
+          # architecture: amd64 # optional
 ```
 
 ## Enable customized machine images for the Alicloud extension
