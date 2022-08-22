@@ -45,4 +45,7 @@ type MachineImage struct {
 	// Encrypted is a flag to specify whether this image is encrypted or not
 	// +optional
 	Encrypted *bool `json:"encrypted,omitempty"`
+	// Architecture is the CPU architecture of the machine image.
+	// +optional
+	Architecture *string `json:"architecture,omitempty"`
 }

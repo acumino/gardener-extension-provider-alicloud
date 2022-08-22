@@ -29,5 +29,35 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&CloudProfileConfig{}, func(obj interface{}) { SetObjectDefaults_CloudProfileConfig(obj.(*CloudProfileConfig)) })
+	scheme.AddTypeDefaultingFunc(&InfrastructureStatus{}, func(obj interface{}) { SetObjectDefaults_InfrastructureStatus(obj.(*InfrastructureStatus)) })
+	scheme.AddTypeDefaultingFunc(&WorkerStatus{}, func(obj interface{}) { SetObjectDefaults_WorkerStatus(obj.(*WorkerStatus)) })
 	return nil
+}
+
+func SetObjectDefaults_CloudProfileConfig(in *CloudProfileConfig) {
+	for i := range in.MachineImages {
+		a := &in.MachineImages[i]
+		for j := range a.Versions {
+			b := &a.Versions[j]
+			for k := range b.Regions {
+				c := &b.Regions[k]
+				SetDefaults_RegionIDMapping(c)
+			}
+		}
+	}
+}
+
+func SetObjectDefaults_InfrastructureStatus(in *InfrastructureStatus) {
+	for i := range in.MachineImages {
+		a := &in.MachineImages[i]
+		SetDefaults_MachineImage(a)
+	}
+}
+
+func SetObjectDefaults_WorkerStatus(in *WorkerStatus) {
+	for i := range in.MachineImages {
+		a := &in.MachineImages[i]
+		SetDefaults_MachineImage(a)
+	}
 }

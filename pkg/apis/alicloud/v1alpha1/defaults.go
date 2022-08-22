@@ -15,9 +15,26 @@
 package v1alpha1
 
 import (
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
+}
+
+// SetDefaults_RegionIDMapping set the architecture of machine image ID.
+func SetDefaults_RegionIDMapping(obj *RegionIDMapping) {
+	if obj.Architecture == nil {
+		obj.Architecture = pointer.String(v1beta1constants.ArchitectureAMD64)
+	}
+}
+
+// SetDefaults_MachineImage set the architecture of machine image.
+func SetDefaults_MachineImage(obj *MachineImage) {
+	if obj.Architecture == nil {
+		obj.Architecture = pointer.String(v1beta1constants.ArchitectureAMD64)
+	}
 }

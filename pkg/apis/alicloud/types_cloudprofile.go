@@ -51,4 +51,6 @@ type RegionIDMapping struct {
 	Name string
 	// ID is the id of the image.
 	ID string
+	// Architecture is the CPU architecture of the machine image.
+	Architecture *string
 }

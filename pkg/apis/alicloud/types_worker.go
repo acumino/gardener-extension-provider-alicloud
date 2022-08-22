@@ -42,4 +42,6 @@ type MachineImage struct {
 	ID string
 	// Encrypted is a flag to specify whether this image is encrypted or not
 	Encrypted *bool
+	// Architecture is the CPU architecture of the machine image.
+	Architecture *string
 }

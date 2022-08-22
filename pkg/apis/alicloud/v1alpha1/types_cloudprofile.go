@@ -52,4 +52,7 @@ type RegionIDMapping struct {
 	Name string `json:"name"`
 	// ID is the id of the image.
 	ID string `json:"id"`
+	// Architecture is the CPU architecture of the machine image.
+	// +optional
+	Architecture *string `json:"architecture,omitempty"`
 }
