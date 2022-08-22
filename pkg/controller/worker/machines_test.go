@@ -315,10 +315,11 @@ var _ = Describe("Machines", func() {
 								},
 								MachineImages: []api.MachineImage{
 									{
-										Name:      machineImageName,
-										Version:   machineImageVersion,
-										Encrypted: pointer.BoolPtr(true),
-										ID:        encryptedImageID,
+										Name:         machineImageName,
+										Version:      machineImageVersion,
+										Encrypted:    pointer.BoolPtr(true),
+										ID:           encryptedImageID,
+										Architecture: pointer.String("amd64"),
 									},
 								},
 							}),
@@ -574,16 +575,18 @@ var _ = Describe("Machines", func() {
 						},
 						MachineImages: []apiv1alpha1.MachineImage{
 							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        machineImageID,
-								Encrypted: pointer.BoolPtr(false),
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           machineImageID,
+								Encrypted:    pointer.BoolPtr(false),
+								Architecture: pointer.String("amd64"),
 							},
 							{
-								Name:      machineImageName,
-								Version:   machineImageVersion,
-								ID:        encryptedImageID,
-								Encrypted: pointer.BoolPtr(true),
+								Name:         machineImageName,
+								Version:      machineImageVersion,
+								ID:           encryptedImageID,
+								Encrypted:    pointer.BoolPtr(true),
+								Architecture: pointer.String("amd64"),
 							},
 						},
 					}

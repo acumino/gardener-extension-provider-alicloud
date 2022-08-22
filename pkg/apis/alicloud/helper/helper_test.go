@@ -67,36 +67,37 @@ var _ = Describe("Helper", func() {
 	)
 
 	DescribeTable("#FindMachineImage",
-		func(machineImage []api.MachineImage, name, version string, encrypted bool, expectedMachineImage *api.MachineImage, expectErr bool) {
-			found, err := FindMachineImage(machineImage, name, version, encrypted)
+		func(machineImage []api.MachineImage, name, version string, encrypted bool, architecture *string, expectedMachineImage *api.MachineImage, expectErr bool) {
+			found, err := FindMachineImage(machineImage, name, version, encrypted, architecture)
 			expectResults(found, expectedMachineImage, err, expectErr)
 		},
 
-		Entry("list is nil", nil, "foo", "1.2.3", true, nil, true),
-		Entry("empty list", []api.MachineImage{}, "foo", "1.2.3", true, nil, true),
-		Entry("entry not found (no name)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.3", true, nil, true),
-		Entry("entry not found (no version)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "foo", "1.2.4", true, nil, true),
-		Entry("entry not found (empty encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", true, nil, true),
-		Entry("entry not found (false encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}}, "bar", "1.2.3", true, nil, true),
+		Entry("list is nil", nil, "foo", "1.2.3", true, pointer.String("foo"), nil, true),
+		Entry("empty list", []api.MachineImage{}, "foo", "1.2.3", true, pointer.String("foo"), nil, true),
+		Entry("entry not found (no name)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}}, "foo", "1.2.3", true, pointer.String("foo"), nil, true),
+		Entry("entry not found (no version)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}}, "foo", "1.2.4", true, pointer.String("foo"), nil, true),
+		Entry("entry not found (empty encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}}, "bar", "1.2.3", true, pointer.String("foo"), nil, true),
+		Entry("entry not found (architecture match does not exist)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}}, "bar", "1.2.3", false, pointer.String("bar"), nil, true),
+		Entry("entry not found (false encrypted)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false), Architecture: pointer.String("foo")}}, "bar", "1.2.3", true, pointer.String("foo"), nil, true),
 
-		Entry("entry exists (encrypted value exists)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}, "bar", "1.2.3", true, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}, false),
-		Entry("entry exists (empty encrypted value)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123"}}, "bar", "1.2.3", false, &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}, false),
+		Entry("entry exists (encrypted value exists)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true), Architecture: pointer.String("foo")}}, "bar", "1.2.3", true, pointer.String("foo"), &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true), Architecture: pointer.String("foo")}, false),
+		Entry("entry exists (empty encrypted value)", []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}}, "bar", "1.2.3", false, pointer.String("foo"), &api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}, false),
 	)
 
 	Describe("#AppendMachineImage",
 		func() {
 
 			It("should append a non-existing image", func() {
-				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true)}}
-				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.4", ID: "id123"}
+				existingImages := []api.MachineImage{{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(true), Architecture: pointer.String("foo")}}
+				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.4", ID: "id123", Architecture: pointer.String("foo")}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)
 				Expect(len(existingImages)).To(Equal(2))
 				Expect(existingImages, ContainElement(imageToInsert))
 			})
 
 			It("should not append the image", func() {
-				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false)}
-				imageExisting := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123"}
+				imageToInsert := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Encrypted: pointer.BoolPtr(false), Architecture: pointer.String("foo")}
+				imageExisting := api.MachineImage{Name: "bar", Version: "1.2.3", ID: "id123", Architecture: pointer.String("foo")}
 				existingImages := []api.MachineImage{imageExisting}
 				existingImages = AppendMachineImage(existingImages, imageToInsert)
 				Expect(len(existingImages)).To(Equal(1))
@@ -105,10 +106,10 @@ var _ = Describe("Helper", func() {
 		})
 
 	DescribeTable("#FindImageForRegion",
-		func(profileImages []api.MachineImages, imageName, version, region string, expectedImage string) {
+		func(profileImages []api.MachineImages, imageName, version, region string, architecture *string, expectedImage string) {
 			cfg := &api.CloudProfileConfig{}
 			cfg.MachineImages = profileImages
-			image, err := FindImageForRegionFromCloudProfile(cfg, imageName, version, region)
+			image, err := FindImageForRegionFromCloudProfile(cfg, imageName, version, region, architecture)
 
 			Expect(image).To(Equal(expectedImage))
 			if expectedImage != "" {
@@ -118,24 +119,26 @@ var _ = Describe("Helper", func() {
 			}
 		},
 
-		Entry("list is nil", nil, "ubuntu", "1", "china", ""),
+		Entry("list is nil", nil, "ubuntu", "1", "china", pointer.String("foo"), ""),
 
-		Entry("profile empty list", []api.MachineImages{}, "ubuntu", "1", "china", ""),
-		Entry("profile entry not found (image does not exist)", makeProfileMachineImages("debian", "1", "china"), "ubuntu", "1", "china", ""),
-		Entry("profile entry not found (version does not exist)", makeProfileMachineImages("ubuntu", "2", "china"), "ubuntu", "1", "china", ""),
-		Entry("profile entry", makeProfileMachineImages("ubuntu", "1", "china"), "ubuntu", "1", "china", profileImageID),
-		Entry("profile non matching region", makeProfileMachineImages("ubuntu", "1", "china"), "ubuntu", "1", "eu", ""),
+		Entry("profile empty list", []api.MachineImages{}, "ubuntu", "1", "china", pointer.String("foo"), ""),
+		Entry("profile entry not found (image does not exist)", makeProfileMachineImages("debian", "1", "china", pointer.String("foo")), "ubuntu", "1", "china", pointer.String("foo"), ""),
+		Entry("profile entry not found (version does not exist)", makeProfileMachineImages("ubuntu", "2", "china", pointer.String("foo")), "ubuntu", "1", "china", pointer.String("foo"), ""),
+		Entry("profile entry not found (architecture match does not exist)", makeProfileMachineImages("ubuntu", "1", "china", pointer.String("foo")), "ubuntu", "1", "china", pointer.String("bar"), ""),
+		Entry("profile entry", makeProfileMachineImages("ubuntu", "1", "china", pointer.String("foo")), "ubuntu", "1", "china", pointer.String("foo"), profileImageID),
+		Entry("profile non matching region", makeProfileMachineImages("ubuntu", "1", "china", pointer.String("foo")), "ubuntu", "1", "eu", pointer.String("foo"), ""),
 	)
 })
 
-func makeProfileMachineImages(name, version, region string) []api.MachineImages {
+func makeProfileMachineImages(name, version, region string, architecture *string) []api.MachineImages {
 	versions := []api.MachineImageVersion{
 		{
 			Version: version,
 			Regions: []api.RegionIDMapping{
 				{
-					Name: region,
-					ID:   profileImageID,
+					Name:         region,
+					ID:           profileImageID,
+					Architecture: architecture,
 				},
 			},
 		},

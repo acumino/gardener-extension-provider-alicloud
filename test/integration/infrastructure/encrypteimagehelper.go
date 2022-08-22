@@ -38,6 +38,7 @@ import (
 
 var imageName = "ubuntu"
 var imageVersion = "20.04"
+var architecture = "amd64"
 
 func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 	providerConfig := &alicloudv1alpha1.CloudProfileConfig{
@@ -53,8 +54,9 @@ func newCluster(namespace string) (*extensionsv1alpha1.Cluster, error) {
 						Version: imageVersion,
 						Regions: []alicloudv1alpha1.RegionIDMapping{
 							{
-								Name: *region,
-								ID:   getImageId(*region),
+								Name:         *region,
+								ID:           getImageId(*region),
+								Architecture: pointer.String(architecture),
 							},
 						},
 					},
@@ -249,6 +251,6 @@ func verifyImageInfraStatus(status *alicloudv1alpha1.InfrastructureStatus) error
 		machineImages = append(machineImages, *converted)
 	}
 
-	_, err := helper.FindMachineImage(machineImages, imageName, imageVersion, *enableEncryptedImage)
+	_, err := helper.FindMachineImage(machineImages, imageName, imageVersion, *enableEncryptedImage, pointer.String(architecture))
 	return err
 }

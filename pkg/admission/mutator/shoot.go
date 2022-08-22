@@ -123,6 +123,7 @@ func (s *shootMutator) mutateShootCreation(ctx context.Context, shoot *corev1bet
 func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *corev1beta1.Shoot, worker *corev1beta1.Worker) error {
 	imageName := worker.Machine.Image.Name
 	imageVersion := worker.Machine.Image.Version
+	architecture := worker.Machine.Architecture
 	logger.Info("Check ImageName: " + imageName + "; ImageVesion: " + *imageVersion)
 	if worker.DataVolumes != nil {
 		for i := range worker.DataVolumes {
@@ -135,7 +136,7 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 	}
 	if worker.Volume != nil && worker.Volume.Encrypted == nil {
 		//don't set encrypted disk by default if image is system image
-		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion)
+		isCustomizeImage, err := s.isCustomizedImage(ctx, shoot, imageName, imageVersion, architecture)
 		if err != nil {
 			return err
 		}
@@ -148,11 +149,11 @@ func (s *shootMutator) setDefaultForEncryptedDisk(ctx context.Context, shoot *co
 	return nil
 }
 
-func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion *string) (bool, error) {
+func (s *shootMutator) isCustomizedImage(ctx context.Context, shoot *corev1beta1.Shoot, imageName string, imageVersion, architecture *string) (bool, error) {
 	cloudProfile := shoot.Spec.CloudProfileName
 	region := shoot.Spec.Region
 	logger.Info("Checking in cloudProfie", "CloudProfile", cloudProfile, "Region", region)
-	imageId, err := s.getImageId(ctx, imageName, imageVersion, region, cloudProfile)
+	imageId, err := s.getImageId(ctx, imageName, region, cloudProfile, imageVersion, architecture)
 	if err != nil || imageId == "" {
 		return false, err
 	}
@@ -198,7 +199,7 @@ func (s *shootMutator) isOwnedbyAliCloud(ctx context.Context, shoot *corev1beta1
 	return false, nil
 }
 
-func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVersion *string, imageRegion string, cloudProfileName string) (string, error) {
+func (s *shootMutator) getImageId(ctx context.Context, imageName, imageRegion, cloudProfileName string, imageVersion, architecture *string) (string, error) {
 	var (
 		cloudProfile    = &corev1beta1.CloudProfile{}
 		cloudProfileKey = kutil.Key(cloudProfileName)
@@ -210,7 +211,7 @@ func (s *shootMutator) getImageId(ctx context.Context, imageName string, imageVe
 	if err != nil {
 		return "", err
 	}
-	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion)
+	return helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, imageName, *imageVersion, imageRegion, architecture)
 }
 
 func (s *shootMutator) getCloudProfileConfig(cloudProfile *corev1beta1.CloudProfile) (*api.CloudProfileConfig, error) {

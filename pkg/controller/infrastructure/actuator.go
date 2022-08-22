@@ -416,15 +416,15 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 		}
 	}
 
-	if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, true); err == nil {
+	if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, true, worker.Machine.Architecture); err == nil {
 		return machineImage, nil
 	}
 
 	// Encrypted image is not found
 	// Find from cloud profile first, if not found then from status
-	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
+	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, worker.Machine.Architecture)
 	if err != nil {
-		if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
+		if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false, worker.Machine.Architecture); err != nil {
 			return nil, err
 		} else {
 			imageID = machineImage.ID
@@ -457,22 +457,23 @@ func (a *actuator) ensureEncryptedImageForShootProviderAccount(
 	}
 
 	return &apisalicloud.MachineImage{
-		Name:      worker.Machine.Image.Name,
-		Version:   *worker.Machine.Image.Version,
-		ID:        encryptedImageID,
-		Encrypted: pointer.BoolPtr(true),
+		Name:         worker.Machine.Image.Name,
+		Version:      *worker.Machine.Image.Version,
+		ID:           encryptedImageID,
+		Encrypted:    pointer.BoolPtr(true),
+		Architecture: worker.Machine.Architecture,
 	}, nil
 }
 
 func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, log logr.Logger, cloudProfileConfig *apisalicloud.CloudProfileConfig, worker gardencorev1beta1.Worker, infra *extensionsv1alpha1.Infrastructure, shootECSClient alicloudclient.ECS, shootCloudProviderAccountID string) (*apisalicloud.MachineImage, error) {
-	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region)
+	imageID, err := helper.FindImageForRegionFromCloudProfile(cloudProfileConfig, worker.Machine.Image.Name, *worker.Machine.Image.Version, infra.Spec.Region, worker.Machine.Architecture)
 	if err != nil {
 		if providerStatus := infra.Status.ProviderStatus; providerStatus != nil {
 			infrastructureStatus := &apisalicloud.InfrastructureStatus{}
 			if _, _, err := a.Decoder().Decode(providerStatus.Raw, nil, infrastructureStatus); err != nil {
 				return nil, fmt.Errorf("could not decode infrastructure status of infrastructure '%s': %w", kutil.ObjectName(infra), err)
 			}
-			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false); err != nil {
+			if machineImage, err := helper.FindMachineImage(infrastructureStatus.MachineImages, worker.Machine.Image.Name, *worker.Machine.Image.Version, false, worker.Machine.Architecture); err != nil {
 				return nil, err
 			} else {
 				imageID = machineImage.ID
@@ -487,9 +488,10 @@ func (a *actuator) ensurePlainImageForShootProviderAccount(ctx context.Context, 
 	}
 
 	return &apisalicloud.MachineImage{
-		Name:    worker.Machine.Image.Name,
-		Version: *worker.Machine.Image.Version,
-		ID:      imageID,
+		Name:         worker.Machine.Image.Name,
+		Version:      *worker.Machine.Image.Version,
+		ID:           imageID,
+		Architecture: worker.Machine.Architecture,
 	}, nil
 }
 

@@ -68,39 +68,40 @@ func matchEncryptedFlag(encrypted *bool, expectEncrypted bool) bool {
 }
 
 // FindMachineImage takes a list of machine images and tries to find the first entry
-// whose name, version and encrypted flag matches with the given name, version and encrypted flag.
+// whose name, version, architecture and encrypted flag matches with the given name, version, architecture and encrypted flag.
 // If no such entry is found then an error will be returned.
-func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion string, encrypted bool) (*api.MachineImage, error) {
+func FindMachineImage(machineImages []api.MachineImage, imageName, imageVersion string, encrypted bool, architecture *string) (*api.MachineImage, error) {
 	for _, machineImage := range machineImages {
-		if machineImage.Name == imageName && machineImage.Version == imageVersion && matchEncryptedFlag(machineImage.Encrypted, encrypted) {
+		if machineImage.Name == imageName && machineImage.Version == imageVersion &&
+			matchEncryptedFlag(machineImage.Encrypted, encrypted) && pointer.StringEqual(architecture, machineImage.Architecture) {
 			return &machineImage, nil
 		}
 	}
 
 	if encrypted {
-		return nil, fmt.Errorf("no encrypted machine image name %q in version %q found", imageName, imageVersion)
+		return nil, fmt.Errorf("no encrypted machine image name %q, architecture %q in version %q found", imageName, *architecture, imageVersion)
 	}
-	return nil, fmt.Errorf("no machine image name %q in version %q found", imageName, imageVersion)
+	return nil, fmt.Errorf("no machine image name %q, architecture %q in version %q found", imageName, *architecture, imageVersion)
 }
 
 // AppendMachineImage will append a given MachineImage to an existing image list.
-// If a same image (by checking name, version and encrypted flag) already exists, nothing happens
+// If a same image (by checking name, version, architecture and encrypted flag) already exists, nothing happens
 func AppendMachineImage(machineImages []api.MachineImage, machineImage api.MachineImage) []api.MachineImage {
 	expectEncripted := machineImage.Encrypted
 	if expectEncripted == nil {
 		expectEncripted = pointer.BoolPtr(false)
 	}
-	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted); err != nil {
+	if _, err := FindMachineImage(machineImages, machineImage.Name, machineImage.Version, *expectEncripted, machineImage.Architecture); err != nil {
 		return append(machineImages, machineImage)
 	}
 
 	return machineImages
 }
 
-// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, and region.
-// It tries to find the image with the given name and version in the desired region.
+// FindImageForRegionFromCloudProfile takes a list of machine images, and the desired image name, version, architecture and region.
+// It tries to find the image with the given name, architecture and version in the desired region.
 // If no image is found then an error is returned.
-func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConfig, imageName, imageVersion, regionName string) (string, error) {
+func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConfig, imageName, imageVersion, regionName string, architecture *string) (string, error) {
 	if cloudProfileConfig != nil {
 		for _, machineImage := range cloudProfileConfig.MachineImages {
 			if machineImage.Name != imageName {
@@ -111,7 +112,7 @@ func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConf
 					continue
 				}
 				for _, mapping := range version.Regions {
-					if regionName == mapping.Name {
+					if regionName == mapping.Name && pointer.StringEqual(architecture, mapping.Architecture) {
 						return mapping.ID, nil
 					}
 				}
@@ -119,5 +120,5 @@ func FindImageForRegionFromCloudProfile(cloudProfileConfig *api.CloudProfileConf
 		}
 	}
 
-	return "", fmt.Errorf("could not find an image for name %q in version %q", imageName, imageVersion)
+	return "", fmt.Errorf("could not find an image for name %q, architecture %q in version %q", imageName, *architecture, imageVersion)
 }

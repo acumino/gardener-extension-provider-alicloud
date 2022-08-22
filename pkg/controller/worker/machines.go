@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/gardener/gardener-extension-provider-alicloud/pkg/alicloud"
@@ -97,7 +98,9 @@ func (w *workerDelegate) generateMachineConfig(ctx context.Context) error {
 			return err
 		}
 
-		machineImage, err := w.findMachineImage(pool, infrastructureStatus, w.worker.Spec.Region)
+		arch := pointer.StringDeref(pool.Architecture, v1beta1constants.ArchitectureAMD64)
+
+		machineImage, err := w.findMachineImage(pool, infrastructureStatus, w.worker.Spec.Region, &arch)
 		if err != nil {
 			return err
 		}

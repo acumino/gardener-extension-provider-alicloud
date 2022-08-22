@@ -51,7 +51,7 @@ func (w *workerDelegate) UpdateMachineImagesStatus(ctx context.Context) error {
 	return nil
 }
 
-func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPool, infraStatus *api.InfrastructureStatus, region string) (*api.MachineImage, error) {
+func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPool, infraStatus *api.InfrastructureStatus, region string, architecture *string) (*api.MachineImage, error) {
 	name := workerPool.MachineImage.Name
 	version := workerPool.MachineImage.Version
 	encrypted, err := common.UseEncryptedSystemDisk(workerPool.Volume)
@@ -60,24 +60,25 @@ func (w *workerDelegate) findMachineImage(workerPool extensionsv1alpha1.WorkerPo
 	}
 
 	if !encrypted {
-		machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region)
+		machineImageID, err := helper.FindImageForRegionFromCloudProfile(w.cloudProfileConfig, name, version, region, architecture)
 		if err == nil {
 			return &api.MachineImage{
-				Name:      name,
-				Version:   version,
-				ID:        machineImageID,
-				Encrypted: pointer.BoolPtr(encrypted),
+				Name:         name,
+				Version:      version,
+				ID:           machineImageID,
+				Encrypted:    pointer.BoolPtr(encrypted),
+				Architecture: architecture,
 			}, nil
 		}
 	}
 
-	machineImage, err := helper.FindMachineImage(infraStatus.MachineImages, name, version, encrypted)
+	machineImage, err := helper.FindMachineImage(infraStatus.MachineImages, name, version, encrypted, architecture)
 	if err != nil {
 		opt := "unencrypted"
 		if encrypted {
 			opt = "encrypted"
 		}
-		return nil, worker.ErrorMachineImageNotFound(name, version, opt)
+		return nil, worker.ErrorMachineImageNotFound(name, version, opt, *architecture)
 	}
 
 	return machineImage, nil
