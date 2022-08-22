@@ -19,7 +19,9 @@ import (
 
 	apisalicloud "github.com/gardener/gardener-extension-provider-alicloud/pkg/apis/alicloud"
 
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/strings/slices"
 )
 
 // ValidateCloudProfileConfig validates a CloudProfileConfig object.
@@ -50,6 +52,9 @@ func ValidateCloudProfileConfig(cloudProfile *apisalicloud.CloudProfileConfig, f
 			if len(version.Regions) == 0 {
 				allErrs = append(allErrs, field.Required(jdxPath.Child("regions"), fmt.Sprintf("must provide at least one region for machine image %q and version %q", machineImage.Name, version.Version)))
 			}
+
+			fmt.Printf("%v", version.Regions)
+
 			for k, region := range version.Regions {
 				kdxPath := jdxPath.Child("regions").Index(k)
 				if len(region.Name) == 0 {
@@ -57,6 +62,9 @@ func ValidateCloudProfileConfig(cloudProfile *apisalicloud.CloudProfileConfig, f
 				}
 				if len(region.ID) == 0 {
 					allErrs = append(allErrs, field.Required(kdxPath.Child("id"), "must provide an id"))
+				}
+				if !slices.Contains(v1beta1constants.ValidArchitectures, *region.Architecture) {
+					allErrs = append(allErrs, field.NotSupported(kdxPath.Child("architecture"), *region.Architecture, v1beta1constants.ValidArchitectures))
 				}
 			}
 		}
